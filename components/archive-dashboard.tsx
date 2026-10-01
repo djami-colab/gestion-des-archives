@@ -61,6 +61,7 @@ export function ArchiveDashboard() {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(copy.fr.dashboard)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [addBoxOpen, setAddBoxOpen] = useState(false)
   const t = copy[lang]
   const isArabic = lang === 'ar'
   const filteredBoxes = useMemo(() => boxes.filter((item) => `${item.code} ${item.title} ${item.service}`.toLowerCase().includes(query.toLowerCase())), [query])
@@ -99,11 +100,11 @@ export function ArchiveDashboard() {
         </header>
 
         <section className="content-wrap">
-          <div className="page-heading"><div><p className="eyebrow">{t.overview}</p><h1>{t.welcome}</h1><p className="muted">{t.updated}</p></div><button className="primary-button" onClick={() => setActive(t.boxes)}><Box size={17} />{t.newBox}</button></div>
+          <div className="page-heading"><div><p className="eyebrow">{t.overview}</p><h1>{t.welcome}</h1><p className="muted">{t.updated}</p></div><button className="primary-button" onClick={() => setAddBoxOpen(true)}><Box size={17} />{t.newBox}</button></div>
           <div className="search-row"><div className="global-search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /><kbd>⌘ K</kbd></div><button className="filter-button"><Filter size={17} />{t.filters}</button></div>
 
           {active !== t.dashboard ? (
-            <StaticFeatureView active={active} t={t} boxes={filteredBoxes} />
+            <StaticFeatureView active={active} t={t} boxes={filteredBoxes} onAddBox={() => setAddBoxOpen(true)} />
           ) : (
             <>
           <section className="metric-grid" aria-label={t.overview}>
@@ -123,11 +124,12 @@ export function ArchiveDashboard() {
           )}
         </section>
       </main>
+      {addBoxOpen && <AddBoxDialog onClose={() => setAddBoxOpen(false)} />}
     </div>
   )
 }
 
-function StaticFeatureView({ active, t, boxes }: { active: string; t: (typeof copy)['fr']; boxes: BoxRow[] }) {
+function StaticFeatureView({ active, t, boxes, onAddBox }: { active: string; t: (typeof copy)['fr']; boxes: BoxRow[]; onAddBox: () => void }) {
   const isBoxes = active === t.boxes
   const isDeadlines = active === t.deadlines
   const isConsultations = active === t.consultations
@@ -136,8 +138,27 @@ function StaticFeatureView({ active, t, boxes }: { active: string; t: (typeof co
 
   return <section className="feature-view">
     <div className="feature-banner"><div><p className="eyebrow">Module</p><h2>{title}</h2><p>{description}</p></div><span className="module-status"><span className="status-dot" />Données synchronisées</span></div>
-    {isBoxes ? <div className="panel feature-panel"><div className="panel-heading"><div><h2>Catalogue des boîtes</h2><p>{boxes.length} résultats dans votre périmètre</p></div><button className="primary-button"><Box size={16} />Nouvelle boîte</button></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Intitulé</th><th>Service</th><th>Emplacement</th><th>Période</th><th>État</th></tr></thead><tbody>{boxes.map((item) => <tr key={item.code}><td><strong className="code-cell">{item.code}</strong></td><td><div className="content-cell"><span className="mini-box"><Box size={14} /></span><strong>{item.title}</strong></div></td><td>{item.service}</td><td><span className="location-cell"><MapPin size={13} />{item.location}</span></td><td>{item.period}</td><td><span className={`status-badge ${item.statusTone}`}>{item.status}</span></td></tr>)}</tbody></table></div></div> : <div className="feature-cards"><FeatureCard icon={<ClipboardCheck size={19} />} title={isConsultations ? 'Demandes en attente' : isDeadlines ? 'Boîtes arrivant à échéance' : 'À traiter'} value={isConsultations ? '28' : isDeadlines ? '14' : '12'} detail={isConsultations ? 'Demandes nécessitent une validation' : isDeadlines ? 'Dans les 90 prochains jours' : 'éléments dans ce module'} tone="teal" /><FeatureCard icon={<CalendarClock size={19} />} title="Prochaine action" value={isDeadlines ? '15 oct.' : 'Aujourd’hui'} detail={isDeadlines ? 'Première échéance à examiner' : 'Aucune action bloquante'} tone="orange" /><FeatureCard icon={<ShieldCheck size={19} />} title="Traçabilité" value="100 %" detail="Actions enregistrées au journal" tone="navy" /></div>}
+    {isBoxes ? <div className="panel feature-panel"><div className="panel-heading"><div><h2>Catalogue des boîtes</h2><p>{boxes.length} résultats dans votre périmètre</p></div><button className="primary-button" onClick={onAddBox}><Box size={16} />Nouvelle boîte</button></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Intitulé</th><th>Service</th><th>Emplacement</th><th>Période</th><th>État</th></tr></thead><tbody>{boxes.map((item) => <tr key={item.code}><td><strong className="code-cell">{item.code}</strong></td><td><div className="content-cell"><span className="mini-box"><Box size={14} /></span><strong>{item.title}</strong></div></td><td>{item.service}</td><td><span className="location-cell"><MapPin size={13} />{item.location}</span></td><td>{item.period}</td><td><span className={`status-badge ${item.statusTone}`}>{item.status}</span></td></tr>)}</tbody></table></div></div> : <div className="feature-cards"><FeatureCard icon={<ClipboardCheck size={19} />} title={isConsultations ? 'Demandes en attente' : isDeadlines ? 'Boîtes arrivant à échéance' : 'À traiter'} value={isConsultations ? '28' : isDeadlines ? '14' : '12'} detail={isConsultations ? 'Demandes nécessitent une validation' : isDeadlines ? 'Dans les 90 prochains jours' : 'éléments dans ce module'} tone="teal" /><FeatureCard icon={<CalendarClock size={19} />} title="Prochaine action" value={isDeadlines ? '15 oct.' : 'Aujourd’hui'} detail={isDeadlines ? 'Première échéance à examiner' : 'Aucune action bloquante'} tone="orange" /><FeatureCard icon={<ShieldCheck size={19} />} title="Traçabilité" value="100 %" detail="Actions enregistrées au journal" tone="navy" /></div>}
   </section>
+}
+
+function AddBoxDialog({ onClose }: { onClose: () => void }) {
+  const [saved, setSaved] = useState(false)
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    setSaved(true)
+  }
+
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <section className="add-box-dialog" role="dialog" aria-modal="true" aria-labelledby="add-box-title">
+      <header className="dialog-header"><div><p className="eyebrow">Nouveau registre</p><h2 id="add-box-title">Ajouter une boîte d’archives</h2><p>Renseignez les informations essentielles pour assurer sa traçabilité.</p></div><button className="dialog-close" onClick={onClose} aria-label="Fermer"><X /></button></header>
+      {saved ? <div className="form-success"><div className="success-mark"><ClipboardCheck /></div><h3>Boîte enregistrée</h3><p>La boîte a été ajoutée au catalogue avec succès.</p><button className="primary-button" onClick={onClose}>Retour au catalogue</button></div> : <form onSubmit={handleSubmit}>
+        <div className="form-section"><div className="form-section-heading"><span>01</span><div><h3>Identification</h3><p>Décrivez le contenu de la boîte.</p></div></div><div className="form-grid"><label className="form-field"><span>Intitulé du contenu <b>*</b></span><input required placeholder="Ex. Dossiers du personnel" /></label><label className="form-field"><span>Service producteur <b>*</b></span><select required defaultValue=""><option value="" disabled>Sélectionner un service</option><option>Ressources humaines</option><option>Finances & comptabilité</option><option>Direction générale</option><option>Affaires juridiques</option></select></label><label className="form-field"><span>Période couverte <b>*</b></span><input required placeholder="Ex. 2021 — 2023" /></label><label className="form-field"><span>Référence externe</span><input placeholder="Ex. RH/2023/014" /></label></div></div>
+        <div className="form-section"><div className="form-section-heading"><span>02</span><div><h3>Emplacement et conservation</h3><p>Indiquez où retrouver la boîte et son statut.</p></div></div><div className="form-grid"><label className="form-field"><span>Local de stockage <b>*</b></span><select required defaultValue=""><option value="" disabled>Sélectionner un local</option><option>Local A</option><option>Local B</option><option>Local C</option></select></label><label className="form-field"><span>Rayon / niveau <b>*</b></span><input required placeholder="Ex. Rayon 03 · Niveau 2" /></label><label className="form-field full-field"><span>Notes complémentaires</span><textarea rows={3} placeholder="Ajoutez une information utile à la consultation…" /></label></div></div>
+        <footer className="dialog-footer"><p><b>*</b> Champs obligatoires</p><div><button type="button" className="cancel-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button"><ClipboardCheck />Enregistrer la boîte</button></div></footer>
+      </form>}
+    </section>
+  </div>
 }
 
 function FeatureCard({ icon, title, value, detail, tone }: { icon: React.ReactNode; title: string; value: string; detail: string; tone: string }) { return <article className="feature-card"><div className={`metric-icon ${tone}`}>{icon}</div><p>{title}</p><strong>{value}</strong><span>{detail}</span></article> }
