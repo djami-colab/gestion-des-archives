@@ -35,6 +35,7 @@ type BoxRow = {
   period: string
   status: string
   statusTone: 'blue' | 'green' | 'amber' | 'red'
+  documentCount?: number
 }
 
 const boxes: BoxRow[] = [
@@ -62,16 +63,16 @@ export function ArchiveDashboard() {
   const [active, setActive] = useState(copy.fr.dashboard)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [newBoxOpen, setNewBoxOpen] = useState(false)
-  const [boxForm, setBoxForm] = useState({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '' })
+  const [boxForm, setBoxForm] = useState({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '', documents: [''] })
   const [boxList, setBoxList] = useState<BoxRow[]>(boxes)
   const t = copy[lang]
   const isArabic = lang === 'ar'
   const filteredBoxes = useMemo(() => boxList.filter((item) => `${item.code} ${item.title} ${item.service}`.toLowerCase().includes(query.toLowerCase())), [boxList, query])
-  const openNewBox = () => { setBoxForm({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '' }); setNewBoxOpen(true) }
+  const openNewBox = () => { setBoxForm({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '', documents: [''] }); setNewBoxOpen(true) }
   const createBox = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const nextCode = `BX-2026-${String(1429 + boxList.length - boxes.length).padStart(5, '0')}`
-    setBoxList((current) => [{ code: nextCode, title: boxForm.title, service: boxForm.service, location: 'À affecter', period: `${boxForm.periodStart} — ${boxForm.periodEnd}`, status: 'Enregistrée', statusTone: 'blue' }, ...current])
+    setBoxList((current) => [{ code: nextCode, title: boxForm.title, service: boxForm.service, location: 'À affecter', period: `${boxForm.periodStart} — ${boxForm.periodEnd}`, status: 'Enregistrée', statusTone: 'blue', documentCount: boxForm.documents.filter((document) => document.trim()).length }, ...current])
     setNewBoxOpen(false)
     setActive(copy[lang].boxes)
   }
@@ -139,12 +140,12 @@ export function ArchiveDashboard() {
   )
 }
 
-function NewBoxDialog({ t, form, setForm, onClose, onSubmit }: { t: (typeof copy)['fr']; form: { title: string; service: string; periodStart: string; periodEnd: string; type: string; notes: string }; setForm: React.Dispatch<React.SetStateAction<typeof form>>; onClose: () => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) {
+function NewBoxDialog({ t, form, setForm, onClose, onSubmit }: { t: (typeof copy)['fr']; form: { title: string; service: string; periodStart: string; periodEnd: string; type: string; notes: string; documents: string[] }; setForm: React.Dispatch<React.SetStateAction<typeof form>>; onClose: () => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) {
   return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="new-box-dialog" role="dialog" aria-modal="true" aria-labelledby="new-box-title">
       <div className="dialog-heading"><div><p className="eyebrow">Enregistrement</p><h2 id="new-box-title">Nouvelle boîte d&apos;archives</h2><p>Renseignez les informations principales de la boîte.</p></div><button className="dialog-close" onClick={onClose} aria-label={t.close}><X size={18} /></button></div>
       <form onSubmit={onSubmit}>
-        <div className="form-grid"><label>Intitulé / contenu<input required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ex. Dossiers administratifs" /></label><label>Service<select required value={form.service} onChange={(event) => setForm((current) => ({ ...current, service: event.target.value }))}><option value="">Sélectionner un service</option><option>Ressources humaines</option><option>Finances & comptabilité</option><option>Achats & logistique</option><option>Direction générale</option><option>Affaires juridiques</option></select></label><label>Type de document<select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}><option>Dossiers administratifs</option><option>Factures et pièces comptables</option><option>Marchés et contrats</option><option>Correspondances</option></select></label><label>Période de référence<div className="period-fields"><input required type="number" min="1900" max="2100" value={form.periodStart} onChange={(event) => setForm((current) => ({ ...current, periodStart: event.target.value }))} placeholder="Début" /><span>—</span><input required type="number" min="1900" max="2100" value={form.periodEnd} onChange={(event) => setForm((current) => ({ ...current, periodEnd: event.target.value }))} placeholder="Fin" /></div></label><label className="full-field">Observations <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Informations complémentaires (facultatif)" rows={3} /></label></div>
+        <div className="form-grid"><label>Intitulé / contenu<input required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ex. Dossiers administratifs" /></label><label>Service<select required value={form.service} onChange={(event) => setForm((current) => ({ ...current, service: event.target.value }))}><option value="">Sélectionner un service</option><option>Ressources humaines</option><option>Finances & comptabilité</option><option>Achats & logistique</option><option>Direction générale</option><option>Affaires juridiques</option></select></label><label>Type de document<select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}><option>Dossiers administratifs</option><option>Factures et pièces comptables</option><option>Marchés et contrats</option><option>Correspondances</option></select></label><label>Période de référence<div className="period-fields"><input required type="number" min="1900" max="2100" value={form.periodStart} onChange={(event) => setForm((current) => ({ ...current, periodStart: event.target.value }))} placeholder="Début" /><span>—</span><input required type="number" min="1900" max="2100" value={form.periodEnd} onChange={(event) => setForm((current) => ({ ...current, periodEnd: event.target.value }))} placeholder="Fin" /></div></label><label className="full-field">Documents contenus dans la boîte <span className="field-hint">Ajoutez chaque document ou dossier séparément.</span><div className="document-list">{form.documents.map((document, index) => <div className="document-row" key={index}><span className="document-number">{index + 1}</span><input required={index === 0} value={document} onChange={(event) => setForm((current) => ({ ...current, documents: current.documents.map((item, itemIndex) => itemIndex === index ? event.target.value : item) }))} placeholder="Ex. Procès-verbal de réunion du 12/03/2023" aria-label={`Document ${index + 1}`} />{form.documents.length > 1 && <button type="button" className="remove-document" onClick={() => setForm((current) => ({ ...current, documents: current.documents.filter((_, itemIndex) => itemIndex !== index) }))} aria-label={`Supprimer le document ${index + 1}`}><X size={15} /></button>}</div>)}<button type="button" className="add-document" onClick={() => setForm((current) => ({ ...current, documents: [...current.documents, ''] }))}>+ Ajouter un document</button></div></label><label className="full-field">Observations <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Informations complémentaires (facultatif)" rows={3} /></label></div>
         <div className="dialog-footer"><button type="button" className="cancel-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button"><Box size={16} />Enregistrer la boîte</button></div>
       </form>
     </section>
