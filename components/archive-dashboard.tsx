@@ -61,9 +61,20 @@ export function ArchiveDashboard() {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(copy.fr.dashboard)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [newBoxOpen, setNewBoxOpen] = useState(false)
+  const [boxForm, setBoxForm] = useState({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '' })
+  const [boxList, setBoxList] = useState<BoxRow[]>(boxes)
   const t = copy[lang]
   const isArabic = lang === 'ar'
-  const filteredBoxes = useMemo(() => boxes.filter((item) => `${item.code} ${item.title} ${item.service}`.toLowerCase().includes(query.toLowerCase())), [query])
+  const filteredBoxes = useMemo(() => boxList.filter((item) => `${item.code} ${item.title} ${item.service}`.toLowerCase().includes(query.toLowerCase())), [boxList, query])
+  const openNewBox = () => { setBoxForm({ title: '', service: '', periodStart: '', periodEnd: '', type: 'Dossiers administratifs', notes: '' }); setNewBoxOpen(true) }
+  const createBox = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const nextCode = `BX-2026-${String(1429 + boxList.length - boxes.length).padStart(5, '0')}`
+    setBoxList((current) => [{ code: nextCode, title: boxForm.title, service: boxForm.service, location: 'À affecter', period: `${boxForm.periodStart} — ${boxForm.periodEnd}`, status: 'Enregistrée', statusTone: 'blue' }, ...current])
+    setNewBoxOpen(false)
+    setActive(copy[lang].boxes)
+  }
 
   const navigation = [t.dashboard, t.boxes, t.movements, t.consultations, t.deadlines, t.reports]
   const getIcon = (index: number) => icons[index]
@@ -99,11 +110,11 @@ export function ArchiveDashboard() {
         </header>
 
         <section className="content-wrap">
-          <div className="page-heading"><div><p className="eyebrow">{t.overview}</p><h1>{t.welcome}</h1><p className="muted">{t.updated}</p></div><button className="primary-button" onClick={() => setActive(t.boxes)}><Box size={17} />{t.newBox}</button></div>
+          <div className="page-heading"><div><p className="eyebrow">{t.overview}</p><h1>{t.welcome}</h1><p className="muted">{t.updated}</p></div><button className="primary-button" onClick={openNewBox}><Box size={17} />{t.newBox}</button></div>
           <div className="search-row"><div className="global-search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /><kbd>⌘ K</kbd></div><button className="filter-button"><Filter size={17} />{t.filters}</button></div>
 
           {active !== t.dashboard ? (
-            <StaticFeatureView active={active} t={t} boxes={filteredBoxes} />
+            <StaticFeatureView active={active} t={t} boxes={filteredBoxes} onNewBox={openNewBox} />
           ) : (
             <>
           <section className="metric-grid" aria-label={t.overview}>
@@ -123,11 +134,24 @@ export function ArchiveDashboard() {
           )}
         </section>
       </main>
+      {newBoxOpen && <NewBoxDialog t={t} form={boxForm} setForm={setBoxForm} onClose={() => setNewBoxOpen(false)} onSubmit={createBox} />}
     </div>
   )
 }
 
-function StaticFeatureView({ active, t, boxes }: { active: string; t: (typeof copy)['fr']; boxes: BoxRow[] }) {
+function NewBoxDialog({ t, form, setForm, onClose, onSubmit }: { t: (typeof copy)['fr']; form: { title: string; service: string; periodStart: string; periodEnd: string; type: string; notes: string }; setForm: React.Dispatch<React.SetStateAction<typeof form>>; onClose: () => void; onSubmit: (event: React.FormEvent<HTMLFormElement>) => void }) {
+  return <div className="dialog-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+    <section className="new-box-dialog" role="dialog" aria-modal="true" aria-labelledby="new-box-title">
+      <div className="dialog-heading"><div><p className="eyebrow">Enregistrement</p><h2 id="new-box-title">Nouvelle boîte d&apos;archives</h2><p>Renseignez les informations principales de la boîte.</p></div><button className="dialog-close" onClick={onClose} aria-label={t.close}><X size={18} /></button></div>
+      <form onSubmit={onSubmit}>
+        <div className="form-grid"><label>Intitulé / contenu<input required value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} placeholder="Ex. Dossiers administratifs" /></label><label>Service<select required value={form.service} onChange={(event) => setForm((current) => ({ ...current, service: event.target.value }))}><option value="">Sélectionner un service</option><option>Ressources humaines</option><option>Finances & comptabilité</option><option>Achats & logistique</option><option>Direction générale</option><option>Affaires juridiques</option></select></label><label>Type de document<select value={form.type} onChange={(event) => setForm((current) => ({ ...current, type: event.target.value }))}><option>Dossiers administratifs</option><option>Factures et pièces comptables</option><option>Marchés et contrats</option><option>Correspondances</option></select></label><label>Période de référence<div className="period-fields"><input required type="number" min="1900" max="2100" value={form.periodStart} onChange={(event) => setForm((current) => ({ ...current, periodStart: event.target.value }))} placeholder="Début" /><span>—</span><input required type="number" min="1900" max="2100" value={form.periodEnd} onChange={(event) => setForm((current) => ({ ...current, periodEnd: event.target.value }))} placeholder="Fin" /></div></label><label className="full-field">Observations <textarea value={form.notes} onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))} placeholder="Informations complémentaires (facultatif)" rows={3} /></label></div>
+        <div className="dialog-footer"><button type="button" className="cancel-button" onClick={onClose}>Annuler</button><button type="submit" className="primary-button"><Box size={16} />Enregistrer la boîte</button></div>
+      </form>
+    </section>
+  </div>
+}
+
+function StaticFeatureView({ active, t, boxes, onNewBox }: { active: string; t: (typeof copy)['fr']; boxes: BoxRow[]; onNewBox: () => void }) {
   const isBoxes = active === t.boxes
   const isDeadlines = active === t.deadlines
   const isConsultations = active === t.consultations
@@ -136,7 +160,7 @@ function StaticFeatureView({ active, t, boxes }: { active: string; t: (typeof co
 
   return <section className="feature-view">
     <div className="feature-banner"><div><p className="eyebrow">Module</p><h2>{title}</h2><p>{description}</p></div><span className="module-status"><span className="status-dot" />Données synchronisées</span></div>
-    {isBoxes ? <div className="panel feature-panel"><div className="panel-heading"><div><h2>Catalogue des boîtes</h2><p>{boxes.length} résultats dans votre périmètre</p></div><button className="primary-button"><Box size={16} />Nouvelle boîte</button></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Intitulé</th><th>Service</th><th>Emplacement</th><th>Période</th><th>État</th></tr></thead><tbody>{boxes.map((item) => <tr key={item.code}><td><strong className="code-cell">{item.code}</strong></td><td><div className="content-cell"><span className="mini-box"><Box size={14} /></span><strong>{item.title}</strong></div></td><td>{item.service}</td><td><span className="location-cell"><MapPin size={13} />{item.location}</span></td><td>{item.period}</td><td><span className={`status-badge ${item.statusTone}`}>{item.status}</span></td></tr>)}</tbody></table></div></div> : <div className="feature-cards"><FeatureCard icon={<ClipboardCheck size={19} />} title={isConsultations ? 'Demandes en attente' : isDeadlines ? 'Boîtes arrivant à échéance' : 'À traiter'} value={isConsultations ? '28' : isDeadlines ? '14' : '12'} detail={isConsultations ? 'Demandes nécessitent une validation' : isDeadlines ? 'Dans les 90 prochains jours' : 'éléments dans ce module'} tone="teal" /><FeatureCard icon={<CalendarClock size={19} />} title="Prochaine action" value={isDeadlines ? '15 oct.' : 'Aujourd’hui'} detail={isDeadlines ? 'Première échéance à examiner' : 'Aucune action bloquante'} tone="orange" /><FeatureCard icon={<ShieldCheck size={19} />} title="Traçabilité" value="100 %" detail="Actions enregistrées au journal" tone="navy" /></div>}
+    {isBoxes ? <div className="panel feature-panel"><div className="panel-heading"><div><h2>Catalogue des boîtes</h2><p>{boxes.length} résultats dans votre périmètre</p></div><button className="primary-button" onClick={onNewBox}><Box size={16} />Nouvelle boîte</button></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Intitulé</th><th>Service</th><th>Emplacement</th><th>Période</th><th>État</th></tr></thead><tbody>{boxes.map((item) => <tr key={item.code}><td><strong className="code-cell">{item.code}</strong></td><td><div className="content-cell"><span className="mini-box"><Box size={14} /></span><strong>{item.title}</strong></div></td><td>{item.service}</td><td><span className="location-cell"><MapPin size={13} />{item.location}</span></td><td>{item.period}</td><td><span className={`status-badge ${item.statusTone}`}>{item.status}</span></td></tr>)}</tbody></table></div></div> : <div className="feature-cards"><FeatureCard icon={<ClipboardCheck size={19} />} title={isConsultations ? 'Demandes en attente' : isDeadlines ? 'Boîtes arrivant à échéance' : 'À traiter'} value={isConsultations ? '28' : isDeadlines ? '14' : '12'} detail={isConsultations ? 'Demandes nécessitent une validation' : isDeadlines ? 'Dans les 90 prochains jours' : 'éléments dans ce module'} tone="teal" /><FeatureCard icon={<CalendarClock size={19} />} title="Prochaine action" value={isDeadlines ? '15 oct.' : 'Aujourd’hui'} detail={isDeadlines ? 'Première échéance à examiner' : 'Aucune action bloquante'} tone="orange" /><FeatureCard icon={<ShieldCheck size={19} />} title="Traçabilité" value="100 %" detail="Actions enregistrées au journal" tone="navy" /></div>}
   </section>
 }
 
