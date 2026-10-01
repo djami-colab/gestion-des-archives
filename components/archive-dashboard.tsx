@@ -59,7 +59,7 @@ const icons = [LayoutDashboard, Box, ArrowLeftRight, ClipboardCheck, CalendarClo
 export function ArchiveDashboard() {
   const [lang, setLang] = useState<Language>('fr')
   const [query, setQuery] = useState('')
-  const [active, setActive] = useState('dashboard')
+  const [active, setActive] = useState(copy.fr.dashboard)
   const [mobileOpen, setMobileOpen] = useState(false)
   const t = copy[lang]
   const isArabic = lang === 'ar'
@@ -102,6 +102,10 @@ export function ArchiveDashboard() {
           <div className="page-heading"><div><p className="eyebrow">{t.overview}</p><h1>{t.welcome}</h1><p className="muted">{t.updated}</p></div><button className="primary-button" onClick={() => setActive(t.boxes)}><Box size={17} />{t.newBox}</button></div>
           <div className="search-row"><div className="global-search"><Search size={18} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t.search} /><kbd>⌘ K</kbd></div><button className="filter-button"><Filter size={17} />{t.filters}</button></div>
 
+          {active !== t.dashboard ? (
+            <StaticFeatureView active={active} t={t} boxes={filteredBoxes} />
+          ) : (
+            <>
           <section className="metric-grid" aria-label={t.overview}>
             <MetricCard label={t.total} value="12 846" delta="+8.4%" tone="navy" icon={<Archive size={19} />} />
             <MetricCard label={t.archived} value="11 209" delta="+6.1%" tone="teal" icon={<PackageCheck size={19} />} />
@@ -115,11 +119,28 @@ export function ArchiveDashboard() {
           </div>
 
           <section className="quick-actions"><p>{t.quick}</p><div className="quick-action-grid"><QuickAction icon={<ArrowLeftRight size={18} />} text={t.transfer} /><QuickAction icon={<ClipboardCheck size={18} />} text={t.consultation} /><QuickAction icon={<FileText size={18} />} text={t.export} /></div></section>
+            </>
+          )}
         </section>
       </main>
     </div>
   )
 }
+
+function StaticFeatureView({ active, t, boxes }: { active: string; t: (typeof copy)['fr']; boxes: BoxRow[] }) {
+  const isBoxes = active === t.boxes
+  const isDeadlines = active === t.deadlines
+  const isConsultations = active === t.consultations
+  const title = isBoxes ? t.boxes : active
+  const description = isBoxes ? 'Catalogue centralisé des boîtes et de leur emplacement.' : isDeadlines ? 'Surveillez les échéances de conservation et les actions à valider.' : isConsultations ? 'Demandes de consultation, sorties et restitutions à suivre.' : 'Cette vue présente les opérations et les informations de référence du registre.'
+
+  return <section className="feature-view">
+    <div className="feature-banner"><div><p className="eyebrow">Module</p><h2>{title}</h2><p>{description}</p></div><span className="module-status"><span className="status-dot" />Données synchronisées</span></div>
+    {isBoxes ? <div className="panel feature-panel"><div className="panel-heading"><div><h2>Catalogue des boîtes</h2><p>{boxes.length} résultats dans votre périmètre</p></div><button className="primary-button"><Box size={16} />Nouvelle boîte</button></div><div className="table-wrap"><table><thead><tr><th>Code</th><th>Intitulé</th><th>Service</th><th>Emplacement</th><th>Période</th><th>État</th></tr></thead><tbody>{boxes.map((item) => <tr key={item.code}><td><strong className="code-cell">{item.code}</strong></td><td><div className="content-cell"><span className="mini-box"><Box size={14} /></span><strong>{item.title}</strong></div></td><td>{item.service}</td><td><span className="location-cell"><MapPin size={13} />{item.location}</span></td><td>{item.period}</td><td><span className={`status-badge ${item.statusTone}`}>{item.status}</span></td></tr>)}</tbody></table></div></div> : <div className="feature-cards"><FeatureCard icon={<ClipboardCheck size={19} />} title={isConsultations ? 'Demandes en attente' : isDeadlines ? 'Boîtes arrivant à échéance' : 'À traiter'} value={isConsultations ? '28' : isDeadlines ? '14' : '12'} detail={isConsultations ? 'Demandes nécessitent une validation' : isDeadlines ? 'Dans les 90 prochains jours' : 'éléments dans ce module'} tone="teal" /><FeatureCard icon={<CalendarClock size={19} />} title="Prochaine action" value={isDeadlines ? '15 oct.' : 'Aujourd’hui'} detail={isDeadlines ? 'Première échéance à examiner' : 'Aucune action bloquante'} tone="orange" /><FeatureCard icon={<ShieldCheck size={19} />} title="Traçabilité" value="100 %" detail="Actions enregistrées au journal" tone="navy" /></div>}
+  </section>
+}
+
+function FeatureCard({ icon, title, value, detail, tone }: { icon: React.ReactNode; title: string; value: string; detail: string; tone: string }) { return <article className="feature-card"><div className={`metric-icon ${tone}`}>{icon}</div><p>{title}</p><strong>{value}</strong><span>{detail}</span></article> }
 
 function MetricCard({ label, value, delta, tone, icon }: { label: string; value: string; delta: string; tone: string; icon: React.ReactNode }) { return <div className="metric-card"><div className={`metric-icon ${tone}`}>{icon}</div><div className="metric-info"><span>{label}</span><strong>{value}</strong><small className={tone === 'orange' || tone === 'violet' ? 'warm' : ''}>{delta}</small></div></div> }
 function ActivityItem({ icon, text, detail, tone }: { icon: React.ReactNode; text: string; detail: string; tone: string }) { return <div className="activity-item"><div className={`activity-icon ${tone}`}>{icon}</div><div><strong>{text}</strong><span>{detail}</span></div></div> }
